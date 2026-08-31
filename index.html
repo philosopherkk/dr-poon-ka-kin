@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dr. Poon Ka Kin | 潘家健醫生</title>
+<style>
+:root{--navy:#003153;--fs:18px}
+html{font-size:var(--fs)}
+body{margin:0;font-family:"Noto Sans TC",sans-serif;line-height:1.75;color:#14202a;background:#f3f6f8}
+a{color:var(--navy)}
+.bar,.hero,footer{background:var(--navy);color:#fff}
+.wrap{max-width:900px;margin:0 auto;padding:0 1rem}
+.bar{position:sticky;top:0}
+.bar-inner{padding:.8rem 0}
+button{min-height:40px;margin:2px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:8px}
+button.active{background:#fff;color:var(--navy)}
+section{padding:1.4rem 0;border-top:1px solid #d5dde3}
+h1,h2,h3{color:inherit} h2,h3{color:var(--navy)}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{border:1px solid #cfd8df;padding:.45rem .6rem;text-align:left}
+th{background:var(--navy);color:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.yt{display:block;margin:.5rem 0;background:var(--navy);color:#fff;text-decoration:none;padding:.6rem .9rem;border-radius:8px;max-width:16rem}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<header class="bar"><div class="wrap bar-inner">
+<div id="navname"><strong>潘家健醫生</strong> · 眼科專科醫生</div>
+<div>
+<button onclick="setFont('16px',this)">A−</button>
+<button class="active" onclick="setFont('18px',this)">A</button>
+<button onclick="setFont('20px',this)">A+</button>
+<button onclick="setFont('22px',this)">A++</button>
+<button class="active" data-lang="zh-HK" onclick="setLang('zh-HK')">繁</button>
+<button data-lang="zh-CN" onclick="setLang('zh-CN')">简</button>
+<button data-lang="en" onclick="setLang('en')">EN</button>
+<button data-lang="ja" onclick="setLang('ja')">日本語</button>
+</div></div></header>
+<div class="hero"><div class="wrap"><h1 id="h1">潘家健醫生</h1><p id="h1s">香港醫務委員會註冊醫生 · 眼科專科醫生</p></div></div>
+<main class="wrap">
+<section>
+<h2 id="sec_part">執業資料</h2>
+<p><strong>潘家健醫生 Dr. Poon Ka Kin</strong></p>
+<p id="spec"></p>
+<ul>
+<li>MB ChB (CUHK)</li>
+<li>MRCS(Ed)</li>
+<li>FCOphth HK</li>
+<li>FHKAM (Ophthalmology)</li>
+</ul>
+</section>
+<section>
+<h2 id="sec_svc">專業服務範圍</h2>
+<p id="svc_note" class="muted"></p>
+<ul>
+<li id="s1"></li><li id="s2"></li><li id="s3"></li><li id="s4"></li><li id="s5"></li><li id="s6"></li>
+</ul>
+</section>
+<section>
+<h2 id="sec_loc">診所位置</h2>
+<div class="grid">
+<div>
+<h3 id="tw_h">荃灣診所</h3>
+<p id="tw_addr"></p>
+<iframe title="map TW" width="100%" height="220" style="border:0" src="https://maps.google.com/maps?q=Park%20Tsuen%20Commercial%20Building%2C%20189%20Castle%20Peak%20Road%2C%20Tsuen%20Wan&z=17&output=embed"></iframe>
+</div>
+<div>
+<h3 id="mk_h">旺角診所</h3>
+<p id="mk_addr"></p>
+<iframe title="map MK" width="100%" height="220" style="border:0" src="https://maps.google.com/maps?q=Argyle%20Centre%20Phase%201%2C%20688%20Nathan%20Road%2C%20Mong%20Kok&z=17&output=embed"></iframe>
+</div>
+</div>
+</section>
+<section>
+<h2 id="sec_hours">診症時間</h2>
+<p id="hours_note"></p>
+<div class="grid">
+<div>
+<h3 id="tw_h2">荃灣</h3>
+<table>
+<tr><th id="th_day">星期</th><th id="th_time">時間</th></tr>
+<tr><td id="mon">一</td><td>10:00 – 13:00</td></tr>
+<tr><td id="tue">二</td><td>15:00 – 18:00</td></tr>
+<tr><td id="wed">三</td><td>15:00 – 18:00</td></tr>
+<tr><td id="thu">四</td><td>10:00 – 13:00</td></tr>
+<tr><td id="fri">五</td><td>15:00 – 18:00</td></tr>
+<tr><td id="sat">六</td><td>14:00 – 16:00</td></tr>
+<tr><td id="sun">日</td><td id="closed">休息</td></tr>
+</table>
+</div>
+<div>
+<h3 id="mk_h2">旺角</h3>
+<table>
+<tr><th>星期</th><th>時間</th></tr>
+<tr><td>一</td><td id="closed2">休息</td></tr>
+<tr><td>二</td><td>10:00 – 13:00</td></tr>
+<tr><td>三</td><td>10:00 – 13:00</td></tr>
+<tr><td>四</td><td>15:00 – 18:00</td></tr>
+<tr><td>五</td><td>10:00 – 13:00</td></tr>
+<tr><td>六</td><td>10:00 – 13:00</td></tr>
+<tr><td>日</td><td id="closed3">休息</td></tr>
+</table>
+</div>
+</div>
+</section>
+<section>
+<h2 id="sec_contact">聯絡</h2>
+<p>電話 <a href="tel:+85223634268">2363 4268</a><br>
+WhatsApp <a href="https://wa.me/85266102363" target="_blank" rel="noopener">6610 2363</a><br>
+Email <a href="mailto:drkkpoon@gmail.com">drkkpoon@gmail.com</a><br>
+Fax 2363 4618<br>
+LinkedIn <a href="https://www.linkedin.com/in/poon-kk-a67915a6/" target="_blank" rel="noopener">linkedin.com/in/poon-kk-a67915a6</a></p>
+</section>
+<section>
+<h2 id="sec_vid">公開教育節目</h2>
+<p id="vid_note"></p>
+<a class="yt" href="https://www.youtube.com/watch?v=os76aaq0bmo" target="_blank" rel="noopener">YouTube: os76aaq0bmo</a>
+<a class="yt" href="https://www.youtube.com/watch?v=pG56Gd5arHg" target="_blank" rel="noopener">YouTube: pG56Gd5arHg</a>
+<a class="yt" href="https://www.youtube.com/watch?v=ibDCPvhVd3c&t=2s" target="_blank" rel="noopener">YouTube: ibDCPvhVd3c</a>
+</section>
+</main>
+<footer><div class="wrap"><p id="disc"></p><p>© 2026 Dr. Poon Ka Kin</p></div></footer>
+<script>
+const T={
+"zh-HK":{h1:"潘家健醫生",h1s:"香港醫務委員會註冊醫生 · 眼科專科醫生",sec_part:"執業資料",spec:"專科名衔：眼科專科醫生",sec_svc:"專業服務範圍",svc_note:"供查閱用，並非推廣或招攬。",s1:"眼科診症及檢查",s2:"白內障手術及人工晶體植入（單焦、多焦、延展景深及散光矯正）",s3:"青光眼",s4:"視網膜及黃斑疾病",s5:"兒童近視",s6:"乾眼症",sec_loc:"診所位置",tw_h:"荃灣診所",mk_h:"旺角診所",tw_addr:"新界荃灣青山公路189號百萬行一樓",mk_addr:"九龍旺角彌敦道688號旺角中心第一期17樓1708室",sec_hours:"診症時間",hours_note:"須預約。",sec_contact:"聯絡方法",sec_vid:"公開教育節目",vid_note:"請於 YouTube 開啟。不能取代個別診症。",disc:"本網站載列執業資料，按香港醫務委員會《專業守則》第 5.2 節及附錄 H 擬備，並非招攬或廣告。"},
+"zh-CN":{h1:"潘家健医生",h1s:"香港医务委员会注册医生 · 眼科专科医生",sec_part:"执业资料",spec:"专科名衔：眼科专科医生",sec_svc:"专业服务范围",svc_note:"供查阅用，并非推广或招揽。",s1:"眼科诊症及检查",s2:"白内障手术及人工晶体植入",s3:"青光眼",s4:"视网膜及黄斑疾病",s5:"儿童近视",s6:"干眼症",sec_loc:"诊所位置",tw_h:"荃湾诊所",mk_h:"旺角诊所",tw_addr:"新界荃湾青山公路189号百万行一楼",mk_addr:"九龙旺角弥敦道688号旺角中心第一期17楼1708室",sec_hours:"应诊时间",hours_note:"须预约。",sec_contact:"联络",sec_vid:"公开教育节目",vid_note:"请在 YouTube 打开。",disc:"本网站刊载执业资料，并非招揽或广告。"},
+en:{h1:"Dr. Poon Ka Kin",h1s:"Registered medical practitioner, Medical Council of Hong Kong",sec_part:"Practice particulars",spec:"Specialist in Ophthalmology",sec_svc:"Range of services",svc_note:"Factual list only. Not an advertisement.",s1:"Ophthalmic consultation",s2:"Cataract surgery and intraocular lens implantation",s3:"Glaucoma",s4:"Retinal and macular conditions",s5:"Childhood myopia",s6:"Dry eye",sec_loc:"Locations",tw_h:"Tsuen Wan clinic",mk_h:"Mong Kok clinic",tw_addr:"1/F, Park Tsuen Commercial Building, 189 Castle Peak Road, Tsuen Wan",mk_addr:"Suite 1708, 17/F, Phase 1, Argyle Centre, 688 Nathan Road, Mong Kok",sec_hours:"Hours",hours_note:"By appointment.",sec_contact:"Contact",sec_vid:"Public educational programmes",vid_note:"Open on YouTube. Not a substitute for consultation.",disc:"Prepared with regard to MCHK Code s.5.2 and Appendix H. Not for canvassing."},
+ja:{h1:"潘家健 医師",h1s:"香港医務委員会登録医師 · 眼科専門医",sec_part:"開業情報",spec:"眼科専門医",sec_svc:"診療範囲",svc_note:"事実情報であり宣伝ではありません。",s1:"眼科診察",s2:"白内障手術および眼内レンズ",s3:"緑内障",s4:"網膜・黄斑疾患",s5:"小児近視",s6:"ドライアイ",sec_loc:"所在地",tw_h:"荃湾診療所",mk_h:"旺角診療所",tw_addr:"新界荃湾、青山公路189号、百萬行 1階",mk_addr:"九龍旺角、彌敦道688号、旺角中心第1期17階1708",sec_hours:"診療時間",hours_note:"予約制。",sec_contact:"連絡先",sec_vid:"公開教育番組",vid_note:"YouTubeで開いてください。",disc:"開業情報の掲載であり、宣伝を目的としません。"}
+};
+function apply(lang){const p=T[lang]||T["zh-HK"];for(const k of Object.keys(p)){const el=document.getElementById(k);if(el)el.textContent=p[k];}document.getElementById("tw_h2").textContent=p.tw_h;document.getElementById("mk_h2").textContent=p.mk_h;document.getElementById("closed2").textContent=document.getElementById("closed").textContent;document.getElementById("closed3").textContent=document.getElementById("closed").textContent;document.querySelectorAll("[data-lang]").forEach(b=>b.classList.toggle("active",b.getAttribute("data-lang")===lang));document.documentElement.lang=lang;}
+function setLang(l){localStorage.setItem("lang",l);apply(l);}
+function setFont(s,btn){document.documentElement.style.setProperty("--fs",s);document.querySelectorAll("button").forEach(b=>{if(/A/.test(b.textContent))b.classList.remove("active");});if(btn)btn.classList.add("active");}
+apply(localStorage.getItem("lang")||"zh-HK");
+</script>
+</body></html>
