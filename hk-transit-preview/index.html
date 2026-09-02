@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>HK Transit — shortest &amp; cheapest Hong Kong routes</title>
+  <meta name="description" content="Hong Kong public transport planner for MTR, bus and minibus. Uses your location, live arrival times, and compares the shortest trip with the cheapest trip." />
+  <meta name="theme-color" content="#071018" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="HK Transit" />
+  <meta property="og:title" content="HK Transit" />
+  <meta property="og:description" content="Plan the shortest and cheapest MTR, bus and minibus trip in Hong Kong, with live arrival times." />
+  <meta property="og:type" content="website" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://data.hkbus.app" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Trip planner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">港</div>
+        <div class="brand-text">
+          <h1 id="t-title">HK Transit</h1>
+          <p id="t-sub">MTR · Bus · Minibus · Live ETA</p>
+        </div>
+        <div class="brand-actions">
+          <button class="lang" id="themeBtn" type="button">Light</button>
+          <button class="lang" id="langBtn" type="button">中文</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label" id="t-from">From</div>
+        <div class="row">
+          <div class="grow suggest">
+            <input class="field" id="originInput" autocomplete="off" placeholder="Current location or a stop" aria-autocomplete="list" />
+            <div class="suggest-list" id="originSuggest" role="listbox"></div>
+          </div>
+          <button class="icon-btn" id="geoBtn" type="button" title="Locate me" aria-label="Use my location">◎</button>
+        </div>
+
+        <div class="row swap-row">
+          <button class="icon-btn" id="swapBtn" type="button" title="Swap" aria-label="Swap origin and destination">⇅</button>
+        </div>
+
+        <div class="label" id="t-to">To</div>
+        <div class="suggest">
+          <input class="field" id="destInput" autocomplete="off" placeholder="MTR station, estate, or landmark" aria-autocomplete="list" />
+          <div class="suggest-list" id="destSuggest" role="listbox"></div>
+        </div>
+
+        <div class="label examples-label" id="t-examples">Popular places</div>
+        <div class="chips" id="destChips"></div>
+
+        <button class="primary" id="planBtn" type="button">Plan shortest &amp; cheapest</button>
+        <p class="empty tip" id="tipNote">Tip: tap a place chip, or type a station name.</p>
+        <div class="empty" id="loadNote"></div>
+        <div class="app-footer" id="appFooter"></div>
+      </div>
+
+      <div class="hero-grid" id="hero"></div>
+      <div id="trips"></div>
+    </aside>
+
+    <section class="map-wrap" aria-label="Map">
+      <div id="map"></div>
+      <div class="map-legend">
+        <div><span class="live-dot"></span><span id="t-live">Live arrivals refresh every 20s</span></div>
+        <div id="clock"></div>
+      </div>
+      <div class="status" id="status" role="status">Loading Hong Kong route catalogue…</div>
+    </section>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
