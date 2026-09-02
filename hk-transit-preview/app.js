@@ -1,8 +1,8 @@
 /* HK Transit — shortest & cheapest planner with live ETAs */
 (() => {
   const APP = {
-    version: "1.2.0",
-    updatedAt: "2026-09-02 06:41 UTC",
+    version: "1.3.0",
+    updatedAt: "2026-09-02 13:20 UTC",
   };
   const CATALOG_URL = "https://data.hkbus.app/routeFareList.min.json";
   const MTR_FARE_URL = "./data/mtr-fares.json";
@@ -47,6 +47,16 @@
       pressEnter: "Press Enter to plan",
       retryGeo: "Try location again",
       catalogueReady: "Ready — pick From and To, then Plan.",
+      fareMtr: "MTR",
+      fareBus: "Bus",
+      fareGmb: "Minibus",
+      fareWalk: "Walk",
+      fareTotal: "Total (Octopus adult est.)",
+      fareNote: "Fares are estimates per mode; Octopus adult.",
+      interchange: "Interchange",
+      interchangeAt: "Change at",
+      routeMap: "Route on map",
+      free: "Free",
     },
     zh: {
       title: "香港出行",
@@ -85,6 +95,16 @@
       pressEnter: "按 Enter 計算",
       retryGeo: "再次定位",
       catalogueReady: "已就緒 — 設定起點及目的地後按計算。",
+      fareMtr: "港鐵",
+      fareBus: "巴士",
+      fareGmb: "小巴",
+      fareWalk: "步行",
+      fareTotal: "總車費（成人八達通估算）",
+      fareNote: "各段車費按交通工具分列；成人八達通估算。",
+      interchange: "轉乘",
+      interchangeAt: "轉乘站",
+      routeMap: "路線地圖",
+      free: "免費",
     },
   };
 
@@ -122,10 +142,9 @@
     dest: null,
     trips: [],
     selected: 0,
-    map: null,
-    layer: null,
     etaTimer: null,
-    tiles: null,
+    routeMap: null,
+    osrmCache: new Map(),
   };
 
   const $ = (id) => document.getElementById(id);
@@ -170,21 +189,8 @@
     $("themeBtn").textContent = theme === "dark" ? t("themeLight") : t("themeDark");
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = theme === "dark" ? "#071018" : "#e8eef3";
-    if (state.map && state.tiles) {
-      state.map.removeLayer(state.tiles);
-      state.tiles = makeTiles().addTo(state.map);
-    }
-  }
-
-  function makeTiles() {
-    const dark = state.theme === "dark";
-    // Free raster tiles (no API key). Dark mode uses a filtered OSM layer look via CSS class.
-    document.documentElement.classList.toggle("map-dark", dark);
-    return L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap",
-      maxZoom: 19,
-      className: dark ? "tile-dark" : "",
-    });
+    document.documentElement.classList.toggle("map-dark", theme === "dark");
+    if (state.trips.length) drawRouteMap(state.trips[state.selected]);
   }
 
   function haversine(aLat, aLng, bLat, bLng) {
@@ -204,11 +210,215 @@
     return { kmb: "KMB", ctb: "CTB", nlb: "NLB", gmb: "GMB", mtr: "MTR", lightRail: "LRT", lrtfeeder: "MTR Bus" }[co] || (co || "").toUpperCase();
   }
 
-  function initMap() {
-    state.map = L.map("map", { zoomControl: true, zoomAnimation: true }).setView([22.32, 114.17], 12);
-    state.tiles = makeTiles().addTo(state.map);
-    state.layer = L.layerGroup().addTo(state.map);
-    setTimeout(() => state.map.invalidateSize(), 80);
+  function fareModeKey(leg) {
+    if (!leg || leg.type === "walk") return null;
+    if (leg.co === "mtr" || leg.co === "lightRail") return "mtr";
+    if (leg.co === "gmb") return "gmb";
+    return "bus";
+  }
+
+  function fareModeLabel(key) {
+    return ({ mtr: t("fareMtr"), bus: t("fareBus"), gmb: t("fareGmb") })[key] || key;
+  }
+
+  function roundFare(n) { return Math.round((n || 0) * 10) / 10; }
+
+  function annotateTrips(trips) {
+    for (const tr of trips) {
+      let mtr = 0, bus = 0, gmb = 0;
+      for (const leg of tr.legs) {
+        if (leg.type === "walk") continue;
+        if (leg.fare == null) {
+          if (leg.routeKey && leg.boardSeq != null) {
+            const route = state.db.routeList[leg.routeKey];
+            leg.fare = leg.co === "mtr"
+              ? mtrPairFare(leg.stopId, leg.alightId)
+              : sectionFare(route, leg.boardSeq, leg.alightSeq);
+          } else if (leg.stopId && leg.alightId) {
+            leg.fare = mtrPairFare(leg.stopId, leg.alightId);
+          } else {
+            leg.fare = defaultFare({ co: [leg.co || "kmb"] });
+          }
+        }
+        leg.fare = roundFare(leg.fare);
+        const k = fareModeKey(leg);
+        if (k === "mtr") mtr += leg.fare;
+        else if (k === "gmb") gmb += leg.fare;
+        else bus += leg.fare;
+      }
+      tr.fareBreakdown = { mtr: roundFare(mtr), bus: roundFare(bus), gmb: roundFare(gmb) };
+      tr.fare = roundFare(mtr + bus + gmb);
+    }
+  }
+
+  function fareBreakdownHtml(bd) {
+    if (!bd) return "";
+    const pills = [];
+    if (bd.mtr > 0) pills.push(`<span class="fare-pill mtr">${t("fareMtr")} $${bd.mtr.toFixed(1)}</span>`);
+    if (bd.bus > 0) pills.push(`<span class="fare-pill bus">${t("fareBus")} $${bd.bus.toFixed(1)}</span>`);
+    if (bd.gmb > 0) pills.push(`<span class="fare-pill gmb">${t("fareGmb")} $${bd.gmb.toFixed(1)}</span>`);
+    return pills.length ? `<div class="fare-breakdown">${pills.join("")}</div>` : "";
+  }
+
+  function stopLat(id) {
+    const s = state.db && state.db.stopList[id];
+    return s && s.location ? [s.location.lat, s.location.lng] : null;
+  }
+
+  function transitStopPoints(leg) {
+    const pts = [];
+    if (!leg.routeKey || leg.boardSeq == null || leg.alightSeq == null) {
+      const a = stopLat(leg.stopId), b = stopLat(leg.alightId);
+      if (a) pts.push(a);
+      if (b && b !== a) pts.push(b);
+      return pts;
+    }
+    const route = state.db.routeList[leg.routeKey];
+    const seq = (route.stops && route.stops[leg.co]) || [];
+    const from = Math.min(leg.boardSeq, leg.alightSeq);
+    const to = Math.max(leg.boardSeq, leg.alightSeq);
+    for (let i = from; i <= to; i++) {
+      const p = stopLat(seq[i]);
+      if (p) pts.push(p);
+    }
+    return pts;
+  }
+
+  function mtrLineStations(fromId, toId, line) {
+    const pts = [];
+    if (!fromId || !toId) return pts;
+    const q = [[fromId, [fromId]]];
+    const seen = new Set([fromId]);
+    while (q.length) {
+      const [cur, path] = q.shift();
+      if (cur === toId) {
+        for (const id of path) {
+          const p = stopLat(id);
+          if (p) pts.push(p);
+        }
+        return pts;
+      }
+      for (const e of state.mtrAdj.get(cur) || []) {
+        if (e.line !== line || seen.has(e.to)) continue;
+        seen.add(e.to);
+        q.push([e.to, path.concat([e.to])]);
+      }
+      if (q.length > 120) break;
+    }
+    const a = stopLat(fromId), b = stopLat(toId);
+    if (a) pts.push(a);
+    if (b) pts.push(b);
+    return pts;
+  }
+
+  async function walkPolyline(a, b) {
+    const key = `${a[0].toFixed(5)},${a[1].toFixed(5)}|${b[0].toFixed(5)},${b[1].toFixed(5)}`;
+    if (state.osrmCache.has(key)) return state.osrmCache.get(key);
+    try {
+      const url = `https://router.project-osrm.org/route/v1/foot/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`;
+      const j = await fetch(url).then((r) => r.json());
+      const coords = j.routes && j.routes[0] && j.routes[0].geometry && j.routes[0].geometry.coordinates;
+      const line = coords ? coords.map((c) => [c[1], c[0]]) : [a, b];
+      state.osrmCache.set(key, line);
+      return line;
+    } catch (_) {
+      const fallback = [a, b];
+      state.osrmCache.set(key, fallback);
+      return fallback;
+    }
+  }
+
+  async function buildRouteGeometry(tr) {
+    const segments = [];
+    let cursor = state.origin ? [state.origin.lat, state.origin.lng] : null;
+    for (let i = 0; i < tr.legs.length; i++) {
+      const leg = tr.legs[i];
+      if (leg.type === "walk") {
+        const nextTransit = tr.legs.slice(i + 1).find((l) => l.type !== "walk");
+        const nextPt = nextTransit
+          ? stopLat(nextTransit.stopId)
+          : (state.dest ? [state.dest.lat, state.dest.lng] : null);
+        if (cursor && nextPt) {
+          const line = await walkPolyline(cursor, nextPt);
+          segments.push({ type: "walk", pts: line });
+          cursor = line[line.length - 1] || nextPt;
+        }
+        continue;
+      }
+      let pts = [];
+      if (leg.type === "mtr" && leg.route) pts = mtrLineStations(leg.stopId, leg.alightId, leg.route);
+      if (!pts.length) pts = transitStopPoints(leg);
+      if (pts.length) {
+        segments.push({ type: leg.type, co: leg.co, color: leg.color, pts });
+        cursor = pts[pts.length - 1];
+      }
+    }
+    if (state.dest && cursor) {
+      const d = [state.dest.lat, state.dest.lng];
+      if (haversine(cursor[0], cursor[1], d[0], d[1]) > 30) {
+        const line = await walkPolyline(cursor, d);
+        segments.push({ type: "walk", pts: line });
+      }
+    }
+    return segments;
+  }
+
+  async function drawRouteMap(tr) {
+    const host = document.querySelector(".trip.active .route-map");
+    if (!host || !tr || !window.L) return;
+    host.innerHTML = "";
+    if (state.routeMap) {
+      state.routeMap.remove();
+      state.routeMap = null;
+    }
+    const map = L.map(host, { zoomControl: false, attributionControl: true }).setView([22.32, 114.17], 12);
+    state.routeMap = map;
+    const dark = state.theme === "dark";
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OSM",
+      maxZoom: 18,
+      className: dark ? "tile-dark" : "",
+    }).addTo(map);
+    const layer = L.layerGroup().addTo(map);
+    const segments = await buildRouteGeometry(tr);
+    const bounds = [];
+    for (const seg of segments) {
+      if (!seg.pts || seg.pts.length < 2) continue;
+      const color = seg.type === "walk" ? "#9bb4c7" : (seg.color || "#5b8cff");
+      L.polyline(seg.pts, {
+        color,
+        weight: seg.type === "walk" ? 3 : 5,
+        opacity: 0.92,
+        dashArray: seg.type === "walk" ? "5 7" : null,
+      }).addTo(layer);
+      bounds.push(...seg.pts);
+    }
+    if (state.origin) {
+      L.circleMarker([state.origin.lat, state.origin.lng], { radius: 6, color: "#2ee0c0", fillColor: "#2ee0c0", fillOpacity: 1 }).addTo(layer);
+      bounds.push([state.origin.lat, state.origin.lng]);
+    }
+    if (state.dest) {
+      L.circleMarker([state.dest.lat, state.dest.lng], { radius: 6, color: "#ff6b6b", fillColor: "#ff6b6b", fillOpacity: 1 }).addTo(layer);
+      bounds.push([state.dest.lat, state.dest.lng]);
+    }
+    const transitLegs = tr.legs.filter((l) => l.type !== "walk");
+    for (let i = 1; i < transitLegs.length; i++) {
+      const cur = transitLegs[i];
+      const p = stopLat(cur.stopId);
+      if (p) {
+        L.marker(p, {
+          icon: L.divIcon({
+            className: "xfer-pin",
+            html: '<div style="background:#f4c15d;color:#3a2a12;font-weight:800;font-size:10px;border-radius:999px;padding:2px 6px;border:1px solid #fff">⇄</div>',
+            iconSize: [24, 16],
+            iconAnchor: [12, 8],
+          }),
+        }).addTo(layer);
+        bounds.push(p);
+      }
+    }
+    if (bounds.length) map.fitBounds(bounds, { padding: [18, 18], maxZoom: 15 });
+    setTimeout(() => map.invalidateSize(), 80);
   }
 
   function renderChips() {
@@ -427,6 +637,7 @@
               wait,
               etaMin: null,
               color: LINE_COLOR[route.route] || null,
+              fare,
             },
             walkLeg(best.alight.location, dest, w2, nm(best.alight.name)),
           ],
@@ -541,6 +752,8 @@
       const last = path[j - 1];
       const fromStop = i === 0 ? start : state.db.stopList[path[i - 1].to] || start;
       const toStop = state.db.stopList[last.to];
+      const fromId = (fromStop.id || start.id);
+      const toId = last.to;
       legs.push({
         type: "mtr",
         co: last.co || "mtr",
@@ -548,12 +761,13 @@
         from: nm(fromStop.name || { en: start.id, zh: start.id }),
         to: nm((toStop && toStop.name) || { en: last.to, zh: last.to }),
         destName: line,
-        stopId: (fromStop.id || start.id),
-        alightId: last.to,
+        stopId: fromId,
+        alightId: toId,
         mins: (j - i) * 2.15,
         wait: i === 0 ? 3.2 : 3.8,
         etaMin: null,
         color: LINE_COLOR[line],
+        fare: mtrPairFare(fromId, toId),
       });
       i = j;
     }
@@ -628,6 +842,7 @@
                 from: nm(os.name), to: nm(alight.st.name), destName: nm(route.dest),
                 stopId: os.id, alightId: alight.id, boardSeq: ref.seq, alightSeq: alight.i,
                 mins: ride, wait, etaMin: null,
+                fare: sectionFare(route, ref.seq, alight.i),
               },
               walkLeg(alight.st.location, hub.location, walkMin(alight.d), nm(alight.st.name)),
               ...mtrPart.legs.filter((l) => l.type === "mtr"),
@@ -680,12 +895,13 @@
       const mtr = mtrPathTrips(state.origin, state.dest);
       const xf = transferTrips(state.origin, state.dest, [...direct, ...mtr]);
       const ranked = dedupeRank([...direct, ...mtr, ...xf]);
+      annotateTrips(ranked);
       state.trips = ranked;
       state.selected = 0;
       await refreshEtas(ranked.slice(0, 6));
       rerankWithEta();
+      annotateTrips(state.trips);
       renderTrips();
-      drawTrip(state.trips[state.selected]);
       if (!ranked.length) setStatus(t("none"));
       else setStatus(`${state.origin.name} → ${state.dest.name}`);
     } catch (err) {
@@ -769,6 +985,19 @@
     return Math.max(0, Math.min(...mins));
   }
 
+  function renderLegsList(legs) {
+    const parts = [];
+    let prevTransit = null;
+    for (const leg of legs) {
+      if (leg.type !== "walk" && prevTransit) {
+        parts.push(`<div class="interchange"><span class="interchange-icon">⇄</span><span>${t("interchange")} · ${t("interchangeAt")} ${esc(leg.from)}</span></div>`);
+      }
+      parts.push(renderLeg(leg));
+      if (leg.type !== "walk") prevTransit = leg;
+    }
+    return parts.join("");
+  }
+
   function renderTrips() {
     const { fastest, cheapest } = pickWinners(state.trips);
     const hero = $("hero");
@@ -783,24 +1012,35 @@
         <h3>${t("shortest")}</h3>
         <div class="big">${fmtMin(fastest.duration)}</div>
         <div class="sub">$${fastest.fare.toFixed(1)} · ${fastest.transfers} ${fastest.transfers === 1 ? t("transfer1") : t("transfers")}</div>
+        ${fareBreakdownHtml(fastest.fareBreakdown)}
       </div>
       <div class="hero cheap">
         <h3>${t("cheapest")}${same ? " · " + t("both") : ""}</h3>
         <div class="big">$${cheapest.fare.toFixed(1)}</div>
         <div class="sub">${fmtMin(cheapest.duration)}</div>
-      </div>`;
+        ${fareBreakdownHtml(cheapest.fareBreakdown)}
+      </div>
+      <p class="empty" style="grid-column:1/-1;margin:0;font-size:11px">${t("fareNote")}</p>`;
 
     $("trips").innerHTML = state.trips.map((tr, i) => {
       const tags = [];
       if (tr.id === fastest.id) tags.push(t("shortest"));
       if (tr.id === cheapest.id) tags.push(t("cheapest"));
-      return `<article class="trip ${i === state.selected ? "active" : ""}" data-i="${i}">
+      const active = i === state.selected;
+      return `<article class="trip ${active ? "active" : ""}" data-i="${i}">
         <div class="trip-top">
-          <div class="mins">${fmtMin(tr.duration)}</div>
-          <div class="fare">$${tr.fare.toFixed(1)}</div>
+          <div>
+            <div class="mins">${fmtMin(tr.duration)}</div>
+            <div class="muted" style="font-size:11px;margin-top:2px">${tags.join(" · ") || tr.kind}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="fare-total">$${tr.fare.toFixed(1)}</div>
+            <div class="fare-note">${t("fareTotal")}</div>
+          </div>
         </div>
-        <div class="muted" style="font-size:12px;margin:2px 0 6px">${tags.join(" · ") || (tr.kind === "mtr" ? "MTR" : tr.kind)}</div>
-        <div class="legs">${tr.legs.map(renderLeg).join("")}</div>
+        ${fareBreakdownHtml(tr.fareBreakdown)}
+        ${active ? `<div class="route-map" aria-label="${t("routeMap")}"></div>` : ""}
+        <div class="legs">${renderLegsList(tr.legs)}</div>
       </article>`;
     }).join("");
 
@@ -808,20 +1048,23 @@
       el.onclick = () => {
         state.selected = +el.dataset.i;
         renderTrips();
-        drawTrip(state.trips[state.selected]);
+        drawRouteMap(state.trips[state.selected]);
       };
     });
+    drawRouteMap(state.trips[state.selected]);
   }
 
   function renderLeg(leg) {
     if (leg.type === "walk") {
-      return `<div class="leg"><div class="badge walk">W</div><div>${t("walk")} ${leg.meters || Math.round(leg.mins * 80)} m</div><div class="muted">${fmtMin(leg.mins)}</div></div>`;
+      return `<div class="leg"><div class="badge walk">W</div><div><div class="leg-mode">${t("fareWalk")}</div>${t("walk")} ${leg.meters || Math.round(leg.mins * 80)} m · ${fmtMin(leg.mins)}</div><div class="leg-fare free">${t("free")}</div></div>`;
     }
     const eta = leg.etaMin != null ? `<span class="eta">${Math.round(leg.etaMin)} ${t("min")}</span>` : `<span class="muted">${t("wait")} ${fmtMin(leg.wait || 0)}</span>`;
+    const mode = fareModeLabel(fareModeKey(leg));
     const label = `${coLabel(leg.co)} ${leg.route}`;
+    const fareTxt = leg.fare != null ? `$${leg.fare.toFixed(1)}` : "—";
     return `<div class="leg"><div class="badge ${leg.type}" style="${leg.color ? `background:${leg.color};color:#fff` : ""}">${esc(leg.route)}</div>
-      <div><strong>${esc(label)}</strong><div class="muted">${esc(leg.from)} → ${esc(leg.to)}${leg.destName ? " · " + esc(leg.destName) : ""}</div></div>
-      <div>${eta}</div></div>`;
+      <div><div class="leg-mode">${esc(mode)}</div><strong>${esc(label)}</strong><div class="muted">${esc(leg.from)} → ${esc(leg.to)}${leg.destName ? " · " + esc(leg.destName) : ""}</div></div>
+      <div><div class="leg-fare">${fareTxt}</div>${eta}</div></div>`;
   }
 
   function fmtMin(n) {
@@ -831,28 +1074,6 @@
   }
   function esc(s) {
     return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  }
-
-  function drawTrip(tr) {
-    state.layer.clearLayers();
-    if (!tr) return;
-    const pts = [];
-    if (state.origin) {
-      L.circleMarker([state.origin.lat, state.origin.lng], { radius: 8, color: "#2ee0c0", fillColor: "#2ee0c0", fillOpacity: 1 }).addTo(state.layer).bindTooltip("A");
-      pts.push([state.origin.lat, state.origin.lng]);
-    }
-    if (state.dest) {
-      L.circleMarker([state.dest.lat, state.dest.lng], { radius: 8, color: "#ff6b6b", fillColor: "#ff6b6b", fillOpacity: 1 }).addTo(state.layer).bindTooltip("B");
-      pts.push([state.dest.lat, state.dest.lng]);
-    }
-    if (tr.board && tr.board.location) {
-      L.circleMarker([tr.board.location.lat, tr.board.location.lng], { radius: 6, color: "#f4c15d" }).addTo(state.layer);
-      pts.push([tr.board.location.lat, tr.board.location.lng]);
-    }
-    if (pts.length >= 2) {
-      L.polyline(pts, { color: "#2ee0c0", weight: 3, dashArray: "6 8", opacity: 0.7 }).addTo(state.layer);
-      state.map.fitBounds(pts, { padding: [40, 40], maxZoom: 15 });
-    }
   }
 
   async function photonReverse(lat, lng) {
@@ -878,7 +1099,6 @@
         const label = (await photonReverse(lat, lng)) || (state.lang === "zh" ? "目前位置" : "Current location");
         state.origin = { lat, lng, name: label };
         $("originInput").value = label;
-        state.map.setView([lat, lng], 15);
         setStatus(label);
         if (state.dest) plan();
       },
@@ -905,7 +1125,6 @@
   }
 
   async function main() {
-    initMap();
     renderChips();
     applyLang();
     bindSuggest($("originInput"), $("originSuggest"), (p) => {
@@ -951,7 +1170,6 @@
     $("destInput").addEventListener("keydown", onEnter);
     tickClock();
     setInterval(tickClock, 1000);
-    window.addEventListener("resize", () => state.map && state.map.invalidateSize());
     document.documentElement.setAttribute("data-theme", state.theme);
     renderFooter();
     await loadData();

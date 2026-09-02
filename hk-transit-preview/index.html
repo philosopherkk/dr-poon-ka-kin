@@ -4,13 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>HK Transit — shortest &amp; cheapest Hong Kong routes</title>
-  <meta name="description" content="Hong Kong public transport planner for MTR, bus and minibus. Uses your location, live arrival times, and compares the shortest trip with the cheapest trip." />
+  <meta name="description" content="Hong Kong public transport planner for MTR, bus and minibus. Live arrival times, fare breakdown, and road-following routes." />
   <meta name="theme-color" content="#071018" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="HK Transit" />
-  <meta property="og:title" content="HK Transit" />
-  <meta property="og:description" content="Plan the shortest and cheapest MTR, bus and minibus trip in Hong Kong, with live arrival times." />
-  <meta property="og:type" content="website" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="favicon.svg" />
@@ -22,7 +20,7 @@
 </head>
 <body>
   <div class="app">
-    <aside class="sidebar" aria-label="Trip planner">
+    <header class="top-bar">
       <div class="brand">
         <div class="logo" aria-hidden="true">港</div>
         <div class="brand-text">
@@ -30,17 +28,23 @@
           <p id="t-sub">MTR · Bus · Minibus · Live ETA</p>
         </div>
         <div class="brand-actions">
-          <button class="lang" id="themeBtn" type="button">Light</button>
-          <button class="lang" id="langBtn" type="button">中文</button>
+          <button class="pill" id="themeBtn" type="button">Light</button>
+          <button class="pill" id="langBtn" type="button">中文</button>
         </div>
       </div>
+      <div class="top-meta">
+        <span><span class="live-dot"></span><span id="t-live">Live arrivals refresh every 20s</span></span>
+        <span id="clock"></span>
+      </div>
+    </header>
 
-      <div class="card">
+    <main class="main-scroll" aria-label="Trip planner">
+      <section class="card planner-card">
         <div class="label" id="t-from">From</div>
         <div class="row">
           <div class="grow suggest">
-            <input class="field" id="originInput" autocomplete="off" placeholder="Current location or a stop" aria-autocomplete="list" />
-            <div class="suggest-list" id="originSuggest" role="listbox"></div>
+            <input class="field" id="originInput" autocomplete="off" placeholder="Current location or a stop" />
+            <div class="suggest-list" id="originSuggest"></div>
           </div>
           <button class="icon-btn" id="geoBtn" type="button" title="Locate me" aria-label="Use my location">◎</button>
         </div>
@@ -51,8 +55,8 @@
 
         <div class="label" id="t-to">To</div>
         <div class="suggest">
-          <input class="field" id="destInput" autocomplete="off" placeholder="MTR station, estate, or landmark" aria-autocomplete="list" />
-          <div class="suggest-list" id="destSuggest" role="listbox"></div>
+          <input class="field" id="destInput" autocomplete="off" placeholder="MTR station, estate, or landmark" />
+          <div class="suggest-list" id="destSuggest"></div>
         </div>
 
         <div class="label examples-label" id="t-examples">Popular places</div>
@@ -62,20 +66,13 @@
         <p class="empty tip" id="tipNote">Tip: tap a place chip, or type a station name.</p>
         <div class="empty" id="loadNote"></div>
         <div class="app-footer" id="appFooter"></div>
-      </div>
+      </section>
 
       <div class="hero-grid" id="hero"></div>
       <div id="trips"></div>
-    </aside>
+    </main>
 
-    <section class="map-wrap" aria-label="Map">
-      <div id="map"></div>
-      <div class="map-legend">
-        <div><span class="live-dot"></span><span id="t-live">Live arrivals refresh every 20s</span></div>
-        <div id="clock"></div>
-      </div>
-      <div class="status" id="status" role="status">Loading Hong Kong route catalogue…</div>
-    </section>
+    <footer class="status-bar" id="status" role="status">Loading Hong Kong route catalogue…</footer>
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>

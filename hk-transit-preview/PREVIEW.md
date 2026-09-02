@@ -1,25 +1,16 @@
-# HK Transit v1.2.0 — preview (not published)
+# HK Transit v1.3.0 — preview (not published)
 
-Staging copy of the fixed Hong Kong transit planner.
+Mobile-first planner (fixed app shell, no background map).
 
-**Do not merge this into the doctor practice site root.** After approval, publish to `philosopherkk/hk-transit` and `philosopherkk.github.io/transit/` only.
+**Preview:** https://temporary-rushing-oxygen-sjsqe8w.vercel.app/
 
-## Live preview
+**Claim:** https://vercel.com/claim-deployment?code=3c741015-7bc0-44d5-b1eb-46dfba0e1a45
 
-https://temporary-fleet-mandolin-cjhyi4y.vercel.app
+## v1.3 changes
+- Fixed full-screen mobile layout (no map behind the UI)
+- Fare breakdown by mode: MTR / Bus / Minibus
+- Per-leg Octopus fare on each segment
+- Interchange markers (⇄) between legs
+- In-card route map following roads/stops (OSRM walks + stop sequences)
 
-Claim (keeps the preview longer than ~60 minutes):
-
-https://vercel.com/claim-deployment?code=4697e5c3-2e82-4f17-8a28-07712e889631
-
-## What this fixes
-
-- Live `/transit/` was broken (missing script chunks + JS syntax error)
-- Single working `app.js` planner
-- Footer: **Version v1.2.0** and **Updated** timestamp
-- UX: light/dark theme, EN/中文, tips, auto-plan on chip/pick, Enter to plan
-- Map tiles via OpenStreetMap (no Carto API-key watermark)
-
-## Tested
-
-Central → Mong Kok: shortest/cheapest ~14 min, $8.5
+Publish targets after approval: `philosopherkk/hk-transit` and `philosopherkk.github.io/transit/`
