@@ -1,5 +1,7 @@
 {
   "name": "dr-poon-ka-kin + github.io",
+  "install": "pnpm install",
+  "start": "pnpm dev",
   "repositoryDependencies": [
     "github.com/philosopherkk/dr-poon-ka-kin",
     "github.com/philosopherkk/philosopherkk.github.io"
