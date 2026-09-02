@@ -1,0 +1,7 @@
+{
+  "name": "dr-poon-ka-kin + github.io",
+  "repositoryDependencies": [
+    "github.com/philosopherkk/dr-poon-ka-kin",
+    "github.com/philosopherkk/philosopherkk.github.io"
+  ]
+}
