@@ -1,0 +1,19 @@
+{
+  "name": "HK Transit",
+  "short_name": "HK Transit",
+  "description": "Hong Kong MTR, bus and minibus planner with live arrivals, shortest trip and cheapest trip.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#071018",
+  "theme_color": "#071018",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "version": "1.2.0"
+}
