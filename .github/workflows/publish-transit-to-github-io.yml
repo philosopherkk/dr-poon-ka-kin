@@ -1,0 +1,62 @@
+# Publishes hk-transit-preview/ → philosopherkk.github.io/transit/
+# Requires repo secret GH_PAGES_PAT (classic PAT with repo scope on philosopherkk.github.io).
+name: Publish Transit to GitHub Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version label for commit message"
+        required: false
+        default: "1.3.0"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging source
+        uses: actions/checkout@v4
+        with:
+          ref: cursor/hk-transit-preview-note-2342
+
+      - name: Checkout Pages repo
+        uses: actions/checkout@v4
+        with:
+          repository: philosopherkk/philosopherkk.github.io
+          token: ${{ secrets.GH_PAGES_PAT }}
+          path: pages
+          fetch-depth: 0
+
+      - name: Copy transit v1.3 into pages/transit/
+        run: |
+          rsync -av --delete hk-transit-preview/ pages/transit/ \
+            --exclude PREVIEW.md
+          ! grep -q 'version: "1.3.0"' pages/transit/app.js
+          ! grep -q 'main-scroll' pages/transit/index.html
+          test ! -f pages/transit/PREVIEW.md
+
+      - name: Create branch and open PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GH_PAGES_PAT }}
+          path: pages
+          repository: philosopherkk/philosopherkk.github.io
+          commit-message: "Publish HK Transit v${{ inputs.version }} to live Pages"
+          branch: cursor/transit-v130-live-2342
+          delete-branch: true
+          title: "Publish HK Transit v${{ inputs.version }} to live Pages"
+          body: |
+            Updates `transit/` only from `hk-transit-preview/` staging (v${{ inputs.version }}).
+            Does not modify `outflow/`, `purple/`, or root `index.html`.
+          labels: |
+            transit
+
+      - name: Merge PR
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAGES_PAT }}
+        run: |
+          pr=$(gh pr list -R philosopherkk/philosopherkk.github.io --head cursor/transit-v130-live-2342 --json number -q '.[0].number')
+          gh pr merge "$pr" -R philosopherkk/philosopherkk.github.io --merge --admin
