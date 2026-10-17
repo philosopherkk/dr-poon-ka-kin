@@ -2,7 +2,8 @@
   "name": "dr-poon-ka-kin",
   "private": true,
   "scripts": {
-    "dev": "serve hk-transit-preview -l 8080"
+    "dev": "serve . -l 8080",
+    "check": "node scripts/check-publish-path.mjs"
   },
   "devDependencies": {
     "serve": "^14.2.4"
